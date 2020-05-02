@@ -30,12 +30,12 @@ let dice; // the dice to throw to move each turn
 let board; // the board to fill with snakes and ladders
 let rows;
 let cols;
-let tileWidth = 128; // By default a tile's width and height are 1/10 of 1280 x 720
-let tileHeight = 72;
+let tileWidth = 128; // By default a tile's width and height is 1/10 of 1280
+let tileHeight = 128;
 
 /*
-    preload
-    preloads assets
+    preload()
+    Preloads assets.
 */
 function preload() {
 
@@ -43,38 +43,42 @@ function preload() {
 
 
 /*
-    setup
-    setup canvas
+    setup()
+    Setup canvas, including the board and its contents.
 */
 function setup() {
     // Create the canvas
-    let game = createCanvas(1280, 720); // 1280, 720 by default
+    let game = createCanvas(1280, 1280); // 1280, 1280 by default
     game.parent('game__container');
     // Adjust rows and cols by tileWidth and height of canvas
     tileWidth = width/10; // default: 128
-    tileHeight = height/5; // default: 144
+    tileHeight = height/10; // default: 128
     cols = floor(width/tileWidth); // default: 10
-    rows = floor(height/tileWidth); // default: 5
+    rows = floor(height/tileHeight); // default: Same as cols 
     // Create a new board
     board = makeBoard(rows, cols);
     // Fill the board
     fillBoard();
-
-    console.log(board);
-    // placeLadders(board);
+    placeLadders(board);
     // placeSnakes(board);
 }
 
+/*
+    fillBoard()
+    Fills the board with cells.
+*/
 function fillBoard() {
     for (let i = 0; i < cols; i++) {
         for (let j = 0; j < rows; j++) {
             // Add an object with x, y as row, column, with random color and no snake or ladder by default
             let data = {
+                i: i,
+                j: j,
                 x: i * tileWidth,
                 y: j * tileHeight,
                 width: tileWidth,
                 height: tileHeight,
-                color: color(random(0, 255), random(0, 255), random(0, 255)),
+                color: color(random(0, 255), 0, random(0, 255)),
                 snake: false,
                 ladder: false
             };
@@ -83,6 +87,10 @@ function fillBoard() {
     }
 }
 
+/*
+    makeBoard()
+    Create the board (cols and rows).
+*/
 function makeBoard(rows, cols) {
     board = new Array(cols);
     for (let i = 0; i < board.length; i++) {
@@ -92,8 +100,34 @@ function makeBoard(rows, cols) {
 }
 
 /*
+    placeLadders()
+    Place the aldders at the beginning of the game.
+*/
+function placeLadders() {
+    let nbOfTiles = rows * cols; // 100
+    let nbLadders = nbOfTiles / 10; // The original Milton equal number of ladders and snakes, could be changed later to create variations
+    // Place ladders at random positions of the board
+    // Ruleset: max 1 ladder per row
+    let ladderPositions = [];
+    // Create a ladder for each row
+    for(let i = 0; i < rows; i++) {
+        let ladder = floor(Math.random() * cols);
+        ladderPositions.push(ladder);
+    }
+    console.log(ladderPositions)
+    // Get in the board data and place the ladders at these positions except the last row at the top
+    // Starting at i = 1 to skip the first row
+    for(let i = 1; i < cols; i++) {
+        for(let j = 0; j < rows; j++) {
+            let ladder = ladderPositions[i];
+            board[ladder][i].setLadder(true);    
+        }
+    }
+}
+
+/*
     changeTurns
-    change turns from p1 to p2 and vice-versa
+    Change turns from p1 to p2 and vice-versa.
 */
 function changeTurns() {
     if (turn === 1) {
@@ -116,7 +150,7 @@ function changeTurns() {
 /*
     move
     Moves the player of the current turn by the value of the dice thrown this turn.
-    constrained between 0, 100 (board size)
+    constrained between 0, 100 (board size).
 */
 function move(player, moveValue) {
     if (player === 1) {
@@ -132,7 +166,7 @@ function move(player, moveValue) {
 
 /*
     showText
-    shows ui
+    Shows text ui.
 */
 function showText(dice) {
     push();
@@ -146,22 +180,25 @@ function showText(dice) {
 
 /*
     draw()
-    Description of draw()
+    Display the game state in each frame. Includes player's position, ladders and snakes.
 */
 function draw() {
     for (let i = 0; i < cols; i++) {
         for (let j = 0; j < rows; j++) {
             board[i][j].show();
+            if(board[i][j].getLadder()) {
+                board[i][j].drawLadder();
+            }
         }
     }
 }
 
 /*
     setInterval
-    Set interval for each player's turn taking
+    Set interval for each player's turn taking.
 */
 setInterval(() => {
-    // changeTurns();
+   // changeTurns();
 }, turnDuration);
 
 /*
@@ -174,7 +211,13 @@ function mousePressed() {
     changeTurns();
 }
 
+/*
+    Cell
+    The cell in each tile. Its data.
+*/
 function Cell(data) {
+    this.i = data.i;
+    this.j = data.j;
     this.x = data.x;
     this.y = data.y;
     this.w = data.width;
@@ -182,10 +225,46 @@ function Cell(data) {
     this.color = data.color;
     this.snake = data.snake;
     this.ladder = data.ladder;
+    return this;
 }
 
+/*
+    show()
+    Displays cells and grid positions.
+*/
 Cell.prototype.show = function () {
     stroke(0);
     fill(this.color);
     rect(this.x, this.y, this.w, this.h);
+    fill(255);
+    text(this.j + ", " + this.i, this.x + this.w/3, this.y + this.h/2);
+}
+
+/*
+    getLadder()
+    Gets a cell's ladder if it exists.
+*/
+Cell.prototype.getLadder = function () {
+    return this.ladder;
+}
+
+/*
+    setLadder()
+    Set a ladder to a value.
+*/
+Cell.prototype.setLadder = function (value) {
+    this.ladder = value;
+}
+
+/*
+    drawLadder()
+    Draw ladders.
+*/
+Cell.prototype.drawLadder = function () {
+    stroke(1);
+    fill(0);
+    ellipse(this.x + this.w/2, this.y + this.h/2, this.w, this.w);
+    textSize(24);
+    fill(255);
+    text('Ladder', this.x + this.w/5, this.y + this.h/2);
 }
