@@ -154,9 +154,31 @@ function changeTurns() {
 */
 function move(player, moveValue) {
     if (player === 1) {
-        p1.position += moveValue;
+        p1.position += moveValue; // base 100
         p1.position = constrain(p1.position, 0, 100);
         console.log(p1.position);
+        // Translate the value of a tile (col i, row j) base 10 (always cols) into an absolute value from 0, 100 (base 100) corresponding
+        // to the player's new position
+        // Base 6 to base 10
+        // i = cols j = rows
+        let currentPosition = p1.position;
+        // The idea is to parse the digits of any number 0-99, the first digit is the col, the second is the row
+        let col = p1.position % 10; // The last digit is the col
+        let row = floor(p1.position / 10); // The rest is the number and also the row
+        console.log("Moved to new col: " + col);
+        console.log("Moved to new row: " + row);        
+        // Check the new position's cell: does it have a ladder or a snake?
+        if(board[col][row].ladder){
+            console.log("We landed on a ladder");
+        }
+        if(board[col][row].snake) {
+            console.log("We landed on a snake");
+        }
+        console.log("i: " + board[col][row].i);
+        console.log("j: " + board[col][row].j);
+        console.log("x: " + board[col][row].x);
+        console.log("y: " + board[col][row].y);
+        console.log("color: " + board[col][row].color);
     } else {
         p2.position += moveValue;
         p2.position = constrain(p2.position, 0, 100);
@@ -267,4 +289,15 @@ Cell.prototype.drawLadder = function () {
     textSize(24);
     fill(255);
     text('Ladder', this.x + this.w/5, this.y + this.h/2);
+}
+
+/**
+    applyLadder()
+    Applies a vertical movement bonus typical of a ladder.
+*/
+Cell.prototype.applyLadder = function() {
+    let currentPosX = this.x;
+    let currentPosY = this.y;
+    console.log(currentPosX);
+    console.log(currentPosY);
 }

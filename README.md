@@ -65,3 +65,15 @@ Week 3: Rolling dice/movement mechanics
 Week 4: Scoring mechanics
 Week 5: Scenes (Start/Win/Lose)
 Week 6: Polish, Manual tests (QA), Prep for demo
+
+
+Variation ideas:
+
+Climb down instead of up (snakes are ladders, getting vices instead of virtues preferred)
+Number ratios between ladders and snakes
+Movement values of ladders and snakes
+Color of tiles
+Meaning of reaching tile 99 versus tile 0
+Speed of a game
+Interactions between p1 and p2
+Sounds and music through the game
