@@ -59,8 +59,8 @@ User data:
 
 Timeline:
 
-Week 1: Design and pseudo-code
-Week 2: Rough visuals
+W̶e̶e̶k̶ 1̶:̶ D̶e̶s̶i̶g̶n̶ a̶n̶d̶ p̶s̶e̶u̶d̶o̶-̶c̶o̶d̶e̶
+W̶e̶e̶k̶ 2̶:̶ R̶o̶u̶g̶h̶ v̶i̶s̶u̶a̶l̶s̶
 Week 3: Rolling dice/movement mechanics
 Week 4: Scoring mechanics
 Week 5: Scenes (Start/Win/Lose)
@@ -77,3 +77,5 @@ Meaning of reaching tile 99 versus tile 0
 Speed of a game
 Interactions between p1 and p2
 Sounds and music through the game
+Different categories of ladders/snakes
+Black hole tiles

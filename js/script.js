@@ -59,7 +59,7 @@ function setup() {
     board = makeBoard(rows, cols);
     // Fill the board
     fillBoard();
-    placeLadders(board);
+    placeLadders();
     // placeSnakes(board);
 }
 
@@ -80,7 +80,8 @@ function fillBoard() {
                 height: tileHeight,
                 color: color(random(0, 255), 0, random(0, 255)),
                 snake: false,
-                ladder: false
+                ladder: false,
+                ladderTop: false
             };
             board[i][j] = new Cell(data);
         }
@@ -109,19 +110,40 @@ function placeLadders() {
     // Place ladders at random positions of the board
     // Ruleset: max 1 ladder per row
     let ladderPositions = [];
+    let ladderFootPlaced = [];
     // Create a ladder for each row
     for(let i = 0; i < rows; i++) {
         let ladder = floor(Math.random() * cols);
         ladderPositions.push(ladder);
     }
-    console.log(ladderPositions)
     // Get in the board data and place the ladders at these positions except the last row at the top
     // Starting at i = 1 to skip the first row
-    for(let i = 1; i < cols; i++) {
-        for(let j = 0; j < rows; j++) {
-            let ladder = ladderPositions[i];
-            board[ladder][i].setLadder(true);    
+    for(let i = 1; i < rows; i++) {
+        let r = 0;
+        for(let j = 0; j < cols; j++) {
+            let ladderFoot = ladderPositions[i];
+            board[ladderFoot][i].setLadder(true);    
+            r = ladderFoot;
         }
+        ladderFootPlaced.push(board[r][i].i + ", " + board[r][i].j); // col then row
+    }
+    // Set ladder tops for each ladder
+    for(let i = 0; i < ladderFootPlaced.length; i++) {
+        let l = ladderFootPlaced[i].toString();
+        // A ladder climbs at least one row above the current one, and max to the last row
+        let coords = l.split(",");
+        let maxClimb = coords[1] - 1;
+        // // Substract to move up - for rows, climb from at least one up to 0 which is the first row
+        let ladderLength = round(random(maxClimb, 0));
+        console.log("Ladder length (row where the top rests): " + ladderLength);
+        // For ladder top's col, take a random number in range
+        let ladderTopCol = round(random(0, cols - 1));
+        console.log("ladder top at: " + ladderLength + ", " + ladderTopCol);
+        board[ladderTopCol][ladderLength].setLadderTop(true);
+        // Add this ladder top coord to the cell with the ladder's foot
+        let r = parseInt(coords[0]);
+        let c = parseInt(coords[1]);
+        board[r][c].getCell().ladderTopCoords = { x: board[ladderTopCol][ladderLength].x, y: board[ladderTopCol][ladderLength].y };
     }
 }
 
@@ -170,6 +192,7 @@ function move(player, moveValue) {
         // Check the new position's cell: does it have a ladder or a snake?
         if(board[col][row].ladder){
             console.log("We landed on a ladder");
+            board[col][row].applyLadder();
         }
         if(board[col][row].snake) {
             console.log("We landed on a snake");
@@ -209,7 +232,28 @@ function draw() {
         for (let j = 0; j < rows; j++) {
             board[i][j].show();
             if(board[i][j].getLadder()) {
-                board[i][j].drawLadder();
+                board[i][j].drawLadder("Ladder");
+            }
+            if(board[i][j].getLadderTop()) {
+                board[i][j].drawLadder("Ladder top");
+            }
+        }
+    }
+    for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+            if(board[i][j].ladderTopCoords) {
+                // Draw the line connecting them (to be replaced by a sprite)
+                let x1 = board[i][j].x;
+                let y1 = board[i][j].y;
+                let x2 = board[i][j].ladderTopCoords.x;
+                let y2 = board[i][j].ladderTopCoords.y;
+                let offsetX = tileWidth/2;
+                let offsetY = tileHeight/2;
+                push();
+                strokeWeight(15);
+                stroke(random(0, 255), random(0, 255), random(0, 255), 105);
+                line(x1 + offsetX, y1 + offsetY, x2 + offsetX, y2 + offsetY);
+                pop();
             }
         }
     }
@@ -247,6 +291,12 @@ function Cell(data) {
     this.color = data.color;
     this.snake = data.snake;
     this.ladder = data.ladder;
+    this.ladderTop = data.ladderTop;
+    this.ladderTopCoords = null; // Waiting to be associated in placeLadders()
+    return this;
+}
+
+Cell.prototype.getCell = function () {
     return this;
 }
 
@@ -270,6 +320,10 @@ Cell.prototype.getLadder = function () {
     return this.ladder;
 }
 
+Cell.prototype.getLadderTop = function () {
+    return this.ladderTop;
+}
+
 /*
     setLadder()
     Set a ladder to a value.
@@ -278,17 +332,21 @@ Cell.prototype.setLadder = function (value) {
     this.ladder = value;
 }
 
+Cell.prototype.setLadderTop = function (value) {
+    this.ladderTop = value;
+
+}
 /*
     drawLadder()
     Draw ladders.
 */
-Cell.prototype.drawLadder = function () {
+Cell.prototype.drawLadder = function (message) {
     stroke(1);
     fill(0);
     ellipse(this.x + this.w/2, this.y + this.h/2, this.w, this.w);
     textSize(24);
     fill(255);
-    text('Ladder', this.x + this.w/5, this.y + this.h/2);
+    text(message, this.x + this.w/5, this.y + this.h/2);
 }
 
 /**
@@ -300,4 +358,5 @@ Cell.prototype.applyLadder = function() {
     let currentPosY = this.y;
     console.log(currentPosX);
     console.log(currentPosY);
+    
 }
