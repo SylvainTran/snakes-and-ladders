@@ -11,16 +11,16 @@ This is a simple variation on Snakes and Ladders (the board game).
 ******************/
 
 let p1 = {
-    position: 0, // the absolute movement value
-    x: 0, // the mapped position x on the board
-    y: 0, // ' ' y on the board
+    position: 99, // the absolute movement value
+    x: 1150, // the mapped position x on the board
+    y: 1150, // ' ' y on the board
     color: '#003d17' // player's color
 }
 
 let p2 = {
-    position: 0,
-    x: 0,
-    y: 0,
+    position: 99,
+    x: 1150,
+    y: 1150,
     color: '#690000'
 }
 // Turn refers to the player's turn: 1 is p1, 2 is p2
@@ -143,7 +143,12 @@ function placeLadders() {
         // Add this ladder top coord to the cell with the ladder's foot
         let r = parseInt(coords[0]);
         let c = parseInt(coords[1]);
-        board[r][c].getCell().ladderTopCoords = { x: board[ladderTopCol][ladderLength].x, y: board[ladderTopCol][ladderLength].y };
+        board[r][c].getCell().ladderTopCoords = { 
+            x: board[ladderTopCol][ladderLength].x, 
+            y: board[ladderTopCol][ladderLength].y,
+            row: ladderLength,
+            col: ladderTopCol
+        };
     }
 }
 
@@ -158,15 +163,27 @@ function changeTurns() {
         move(1, dice);
         // then change to 2
         turn = 2;
-        background(p2.color); // Background is red for p2
-        showText(dice);
+        // background(p2.color); // Background is red for p2
+        // showText(dice);
     } else {
         dice = Math.floor(random(1, 7));
         move(2, dice);
         turn = 1;
-        background(p1.color); // Background is green for p1
-        showText(dice);
+        // background(p1.color); // Background is green for p1
+        // showText(dice);
     }
+}
+
+function displayPlayer() {
+    stroke(1);
+    push();
+    fill(p1.color);
+    ellipse(p1.x + 64, p1.y + 64, 64);
+    pop();
+    push();
+    fill(p2.color);
+    ellipse(p2.x + 64, p2.y + 64, 64);
+    pop();
 }
 
 /*
@@ -176,7 +193,7 @@ function changeTurns() {
 */
 function move(player, moveValue) {
     if (player === 1) {
-        p1.position += moveValue; // base 100
+        p1.position -= moveValue; // base 100
         p1.position = constrain(p1.position, 0, 100);
         console.log(p1.position);
         // Translate the value of a tile (col i, row j) base 10 (always cols) into an absolute value from 0, 100 (base 100) corresponding
@@ -192,18 +209,25 @@ function move(player, moveValue) {
         // Check the new position's cell: does it have a ladder or a snake?
         if(board[col][row].ladder){
             console.log("We landed on a ladder");
-            board[col][row].applyLadder();
+            board[col][row].applyLadder(player);
         }
         if(board[col][row].snake) {
             console.log("We landed on a snake");
         }
+        // Update the x, y position for display
+        p1.y = board[col][row].y;
+        p1.x = board[col][row].x;
         console.log("i: " + board[col][row].i);
         console.log("j: " + board[col][row].j);
         console.log("x: " + board[col][row].x);
         console.log("y: " + board[col][row].y);
         console.log("color: " + board[col][row].color);
+        // Check if won
+        if(p1.position === 0) {
+            alert("Player 1 Won!");
+        }
     } else {
-        p2.position += moveValue;
+        p2.position -= moveValue;
         p2.position = constrain(p2.position, 0, 100);
         console.log(p2.position);
     }
@@ -257,6 +281,8 @@ function draw() {
             }
         }
     }
+    // Update the player avatar display
+    displayPlayer();    
 }
 
 /*
@@ -353,10 +379,24 @@ Cell.prototype.drawLadder = function (message) {
     applyLadder()
     Applies a vertical movement bonus typical of a ladder.
 */
-Cell.prototype.applyLadder = function() {
+Cell.prototype.applyLadder = function(player) {
     let currentPosX = this.x;
     let currentPosY = this.y;
     console.log(currentPosX);
     console.log(currentPosY);
-    
+    if(player === 1) {
+        // Update the position for the image
+        p1.x = this.ladderTopCoords.x;
+        p1.y = this.ladderTopCoords.y;
+        console.log(this.ladderTopCoords.x);
+        console.log(this.ladderTopCoords.y);
+        console.log(p1.x);
+        console.log(p1.y);
+        // Update the movement position value 
+        let newPos = this.ladderTopCoords.row * 10 + this.ladderTopCoords.col; 
+        console.log(newPos);
+        p1.position = newPos;
+    }
+    displayPlayer();
+    redraw(1);
 }
