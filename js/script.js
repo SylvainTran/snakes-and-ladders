@@ -60,7 +60,7 @@ function setup() {
     // Fill the board
     fillBoard();
     placeLadders();
-    // placeSnakes(board);
+    placeSnakes(board);
 }
 
 /*
@@ -78,7 +78,7 @@ function fillBoard() {
                 y: j * tileHeight,
                 width: tileWidth,
                 height: tileHeight,
-                color: color(random(0, 255), 0, random(0, 255)),
+                color: color(125, 125, 125),
                 snake: false,
                 ladder: false,
                 ladderTop: false
@@ -113,7 +113,7 @@ function placeLadders() {
     let ladderFootPlaced = [];
     // Create a ladder for each row
     for(let i = 0; i < rows; i++) {
-        let ladder = floor(Math.random() * cols);
+        let ladder = floor(Math.random() * (cols - 1));
         ladderPositions.push(ladder);
     }
     // Get in the board data and place the ladders at these positions except the last row at the top
@@ -121,6 +121,7 @@ function placeLadders() {
     for(let i = 1; i < rows; i++) {
         let r = 0;
         for(let j = 0; j < cols; j++) {
+            // Todo make sure no overlap ladder top and ladder foot
             let ladderFoot = ladderPositions[i];
             board[ladderFoot][i].setLadder(true);    
             r = ladderFoot;
@@ -148,8 +149,41 @@ function placeLadders() {
             y: board[ladderTopCol][ladderLength].y,
             row: ladderLength,
             col: ladderTopCol
-        };
+        };        
     }
+}
+
+function placeSnakes() {
+    // Amount of snakes is at least half of the number of rows 
+    let nbOfSnakes = round(random(rows/2, rows));
+    for(let i = 0; i < nbOfSnakes; i++) {
+        // Starting at the first row
+        let c = round(random(0, cols - 1));
+        let r = round(random(0, rows - 1));
+        if(r === (rows - 1)) r = rows - 2;
+        // If there is no ladder or snakes placed at this cell, place a snake
+        if(!board[c][r].getCell().ladder &&
+           !board[c][r].getCell().ladderTopCoords &&
+           !board[c][r].getCell().snake && 
+           !board[c][r].getCell().snakeCoords) 
+        {
+            board[c][r].getCell().snake = true; 
+            board[c][r].getCell().snakeCoords;           
+            // Maximum row to drop to is the bottomest row
+            let maxDrop = rows - 1;
+            let snakeTopCol = round(random(0, cols - 1));
+            // The row the snake length is set to a random row except the bottomest row
+            let snakeLength = round(random(board[c][r].getCell().j + 1, maxDrop - 1));
+            board[snakeTopCol][snakeLength].setSnakeBottom(true);
+            board[c][r].getCell().snakeCoords = { 
+                x: board[snakeTopCol][snakeLength].x, 
+                y: board[snakeTopCol][snakeLength].y,
+                row: snakeLength,
+                col: snakeTopCol
+            };                  
+        }
+    }
+
 }
 
 /*
@@ -213,15 +247,11 @@ function move(player, moveValue) {
         }
         if(board[col][row].snake) {
             console.log("We landed on a snake");
+            board[col][row].applySnake(player);
         }
         // Update the x, y position for display
         p1.y = board[col][row].y;
         p1.x = board[col][row].x;
-        console.log("i: " + board[col][row].i);
-        console.log("j: " + board[col][row].j);
-        console.log("x: " + board[col][row].x);
-        console.log("y: " + board[col][row].y);
-        console.log("color: " + board[col][row].color);
         // Check if won
         if(p1.position === 0) {
             alert("Player 1 Won!");
@@ -261,6 +291,12 @@ function draw() {
             if(board[i][j].getLadderTop()) {
                 board[i][j].drawLadder("Ladder top");
             }
+            if(board[i][j].getSnake()) {
+                board[i][j].drawSnake("Snake");
+            }
+            if(board[i][j].getSnakeBottom()) {
+                board[i][j].drawSnake("Snake Bottom");
+            }
         }
     }
     for (let i = 0; i < cols; i++) {
@@ -275,10 +311,24 @@ function draw() {
                 let offsetY = tileHeight/2;
                 push();
                 strokeWeight(15);
-                stroke(random(0, 255), random(0, 255), random(0, 255), 105);
+                stroke(random(125, 255), random(125, 255), random(255, 255), 105);
                 line(x1 + offsetX, y1 + offsetY, x2 + offsetX, y2 + offsetY);
                 pop();
             }
+            if(board[i][j].snakeCoords) {
+                // Draw the line connecting them (to be replaced by a sprite)
+                let x1 = board[i][j].x;
+                let y1 = board[i][j].y;
+                let x2 = board[i][j].snakeCoords.x;
+                let y2 = board[i][j].snakeCoords.y;
+                let offsetX = tileWidth/2;
+                let offsetY = tileHeight/2;
+                push();
+                strokeWeight(15);
+                stroke(random(0, 125), random(0, 125), random(0, 125), 105);
+                line(x1 + offsetX, y1 + offsetY, x2 + offsetX, y2 + offsetY);
+                pop();
+            }            
         }
     }
     // Update the player avatar display
@@ -316,6 +366,8 @@ function Cell(data) {
     this.h = data.height;
     this.color = data.color;
     this.snake = data.snake;
+    this.snakeBottom = data.snakeBottom;
+    this.snakeCoords = null; // Waiting to be associated in placeLadders()
     this.ladder = data.ladder;
     this.ladderTop = data.ladderTop;
     this.ladderTopCoords = null; // Waiting to be associated in placeLadders()
@@ -360,8 +412,20 @@ Cell.prototype.setLadder = function (value) {
 
 Cell.prototype.setLadderTop = function (value) {
     this.ladderTop = value;
-
 }
+
+Cell.prototype.getSnake = function () {
+    return this.snake;
+}
+
+Cell.prototype.getSnakeBottom = function () {
+    return this.snakeBottom;
+}
+
+Cell.prototype.setSnakeBottom = function (value) {
+    this.snakeBottom = value;
+}
+
 /*
     drawLadder()
     Draw ladders.
@@ -375,28 +439,47 @@ Cell.prototype.drawLadder = function (message) {
     text(message, this.x + this.w/5, this.y + this.h/2);
 }
 
+/*
+    drawSnake()
+    Draw snakes.
+*/
+Cell.prototype.drawSnake = function (message) {
+    stroke(1);
+    fill(255,0,0);
+    ellipse(this.x + this.w/2, this.y + this.h/2, this.w, this.w);
+    textSize(24);
+    fill(255);
+    text(message, this.x + this.w/5, this.y + this.h/2);
+}
+
 /**
     applyLadder()
     Applies a vertical movement bonus typical of a ladder.
 */
 Cell.prototype.applyLadder = function(player) {
-    let currentPosX = this.x;
-    let currentPosY = this.y;
-    console.log(currentPosX);
-    console.log(currentPosY);
     if(player === 1) {
         // Update the position for the image
         p1.x = this.ladderTopCoords.x;
         p1.y = this.ladderTopCoords.y;
-        console.log(this.ladderTopCoords.x);
-        console.log(this.ladderTopCoords.y);
-        console.log(p1.x);
-        console.log(p1.y);
         // Update the movement position value 
         let newPos = this.ladderTopCoords.row * 10 + this.ladderTopCoords.col; 
         console.log(newPos);
         p1.position = newPos;
     }
-    displayPlayer();
-    redraw(1);
+}
+
+/**
+    applySnake()
+    Applies a vertical movement malus typical of a snake.
+*/
+Cell.prototype.applySnake = function(player) {
+    if(player === 1) {
+        // Update the position for the image
+        p1.x = this.snakeCoords.x;
+        p1.y = this.snakeCoords.y;
+        // Update the movement position value 
+        let newPos = this.snakeCoords.row * 10 + this.snakeCoords.col; 
+        p1.position = newPos;
+        console.log(p1.position);
+    }
 }
