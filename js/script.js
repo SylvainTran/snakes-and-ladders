@@ -13,14 +13,14 @@ This is a simple variation on Snakes and Ladders (the board game).
 let p1 = {
     position: 99, // the absolute movement value
     x: 1150, // the mapped position x on the board
-    y: 1150, // ' ' y on the board
+    y: 1120, // ' ' y on the board
     color: '#003d17' // player's color
 }
 
 let p2 = {
     position: 99,
     x: 1150,
-    y: 1150,
+    y: 1185,
     color: '#690000'
 }
 // Turn refers to the player's turn: 1 is p1, 2 is p2
@@ -40,7 +40,6 @@ let tileHeight = 128;
 function preload() {
 
 }
-
 
 /*
     setup()
@@ -136,10 +135,8 @@ function placeLadders() {
         let maxClimb = coords[1] - 1;
         // // Substract to move up - for rows, climb from at least one up to 0 which is the first row
         let ladderLength = round(random(maxClimb, 0));
-        console.log("Ladder length (row where the top rests): " + ladderLength);
         // For ladder top's col, take a random number in range
         let ladderTopCol = round(random(0, cols - 1));
-        console.log("ladder top at: " + ladderLength + ", " + ladderTopCol);
         board[ladderTopCol][ladderLength].setLadderTop(true);
         // Add this ladder top coord to the cell with the ladder's foot
         let r = parseInt(coords[0]);
@@ -163,9 +160,9 @@ function placeSnakes() {
         if(r === (rows - 1)) r = rows - 2;
         // If there is no ladder or snakes placed at this cell, place a snake
         if(!board[c][r].getCell().ladder &&
-           !board[c][r].getCell().ladderTopCoords &&
+           !board[c][r].getCell().ladderTop &&
            !board[c][r].getCell().snake && 
-           !board[c][r].getCell().snakeCoords) 
+           !board[c][r].getCell().snakeBottom) 
         {
             board[c][r].getCell().snake = true; 
             board[c][r].getCell().snakeCoords;           
@@ -192,16 +189,13 @@ function placeSnakes() {
 */
 function changeTurns() {
     if (turn === 1) {
-        // Throw the dice (ints 1-6)
-        dice = Math.floor(random(1, 7));
-        move(1, dice);
+        move(1);
         // then change to 2
         turn = 2;
         // background(p2.color); // Background is red for p2
         // showText(dice);
     } else {
-        dice = Math.floor(random(1, 7));
-        move(2, dice);
+        move(2);
         turn = 1;
         // background(p1.color); // Background is green for p1
         // showText(dice);
@@ -225,42 +219,51 @@ function displayPlayer() {
     Moves the player of the current turn by the value of the dice thrown this turn.
     constrained between 0, 100 (board size).
 */
-function move(player, moveValue) {
-    if (player === 1) {
-        p1.position -= moveValue; // base 100
-        p1.position = constrain(p1.position, 0, 100);
-        console.log(p1.position);
-        // Translate the value of a tile (col i, row j) base 10 (always cols) into an absolute value from 0, 100 (base 100) corresponding
-        // to the player's new position
-        // Base 6 to base 10
-        // i = cols j = rows
-        let currentPosition = p1.position;
-        // The idea is to parse the digits of any number 0-99, the first digit is the col, the second is the row
-        let col = p1.position % 10; // The last digit is the col
-        let row = floor(p1.position / 10); // The rest is the number and also the row
-        console.log("Moved to new col: " + col);
-        console.log("Moved to new row: " + row);        
-        // Check the new position's cell: does it have a ladder or a snake?
-        if(board[col][row].ladder){
-            console.log("We landed on a ladder");
-            board[col][row].applyLadder(player);
-        }
-        if(board[col][row].snake) {
-            console.log("We landed on a snake");
-            board[col][row].applySnake(player);
-        }
-        // Update the x, y position for display
-        p1.y = board[col][row].y;
-        p1.x = board[col][row].x;
-        // Check if won
-        if(p1.position === 0) {
-            alert("Player 1 Won!");
-        }
-    } else {
-        p2.position -= moveValue;
-        p2.position = constrain(p2.position, 0, 100);
-        console.log(p2.position);
+function move(player) {
+    let currentPlayer = calculateNewPosition(player);
+    let { col, row } = checkCellData(currentPlayer, player);
+    // Update the x, y position for display
+    updatePlayerCoordinates(currentPlayer, col, row);
+    checkVictory(currentPlayer, player);
+}
+
+function checkVictory(currentPlayer, player) {
+    if (currentPlayer.position === 0) {
+        console.log("Player " + player + " Won!");
     }
+}
+
+function calculateNewPosition(player) {
+    let currentPlayer = getCurrentPlayer(player);
+    // Throw the dice (ints 1-6)
+    dice = Math.floor(random(1, 7));    
+    let moveValue = dice;
+    currentPlayer.position -= moveValue; // base 100
+    currentPlayer.position = constrain(currentPlayer.position, 0, 100);
+    // The idea is to parse the digits of any number 0-99, the first digit is the col, the second is the row
+    return currentPlayer;
+}
+
+function updatePlayerCoordinates(currentPlayer, col, row) {
+    currentPlayer.y = board[col][row].y;
+    currentPlayer.x = board[col][row].x;
+}
+
+function checkCellData(currentPlayer, player) {
+    let col = currentPlayer.position % 10; // The last digit is the col
+    let row = floor(currentPlayer.position / 10); // The rest is the number and also the row
+    // TODO - Adjust / flip movement values to start from the left side of the board
+    // Ncols - current position's second digit (col number), - 1 , = adjusted position
+    // Check the new position's cell: does it have a ladder or a snake?
+    if (board[col][row].ladder) {
+        console.log("We landed on a ladder");
+        board[col][row].applyLadder(player);
+    }
+    if (board[col][row].snake) {
+        console.log("We landed on a snake");
+        board[col][row].applySnake(player);
+    }
+    return { col, row };
 }
 
 /*
@@ -299,38 +302,8 @@ function draw() {
             }
         }
     }
-    for (let i = 0; i < cols; i++) {
-        for (let j = 0; j < rows; j++) {
-            if(board[i][j].ladderTopCoords) {
-                // Draw the line connecting them (to be replaced by a sprite)
-                let x1 = board[i][j].x;
-                let y1 = board[i][j].y;
-                let x2 = board[i][j].ladderTopCoords.x;
-                let y2 = board[i][j].ladderTopCoords.y;
-                let offsetX = tileWidth/2;
-                let offsetY = tileHeight/2;
-                push();
-                strokeWeight(15);
-                stroke(random(125, 255), random(125, 255), random(255, 255), 105);
-                line(x1 + offsetX, y1 + offsetY, x2 + offsetX, y2 + offsetY);
-                pop();
-            }
-            if(board[i][j].snakeCoords) {
-                // Draw the line connecting them (to be replaced by a sprite)
-                let x1 = board[i][j].x;
-                let y1 = board[i][j].y;
-                let x2 = board[i][j].snakeCoords.x;
-                let y2 = board[i][j].snakeCoords.y;
-                let offsetX = tileWidth/2;
-                let offsetY = tileHeight/2;
-                push();
-                strokeWeight(15);
-                stroke(random(0, 125), random(0, 125), random(0, 125), 105);
-                line(x1 + offsetX, y1 + offsetY, x2 + offsetX, y2 + offsetY);
-                pop();
-            }            
-        }
-    }
+    drawLines("ladder");
+    drawLines("snake");
     // Update the player avatar display
     displayPlayer();    
 }
@@ -342,6 +315,50 @@ function draw() {
 setInterval(() => {
    // changeTurns();
 }, turnDuration);
+
+function drawLines(type) {
+    let lineType = getLineType(type);
+    let color = getLineColor(type);
+    for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+            if (board[i][j][lineType]) {
+                // Draw the line connecting them (to be replaced by a sprite)
+                let x1 = board[i][j].x;
+                let y1 = board[i][j].y;
+                let x2 = board[i][j][lineType].x;
+                let y2 = board[i][j][lineType].y;
+                let offsetX = tileWidth / 2;
+                let offsetY = tileHeight / 2;
+                push();
+                strokeWeight(15);
+                stroke(color);
+                line(x1 + offsetX, y1 + offsetY, x2 + offsetX, y2 + offsetY);
+                pop();
+            }
+        }
+    }
+}
+
+function getLineColor(type) {
+    let color;
+    if (type === "snake") {
+        color = [random(0, 125), random(0, 125), random(0, 125), 105];
+    } else {
+        color = [random(125, 255), random(125, 255), random(255, 255), 105];
+    }
+    return color;
+}
+
+function getLineType(type) {
+    let lineType;
+    if (type === "ladder") {
+        lineType = "ladderTopCoords";
+    }
+    else {
+        lineType = "snakeCoords";
+    }
+    return lineType;
+}
 
 /*
     mousePressed
@@ -457,15 +474,14 @@ Cell.prototype.drawSnake = function (message) {
     Applies a vertical movement bonus typical of a ladder.
 */
 Cell.prototype.applyLadder = function(player) {
-    if(player === 1) {
-        // Update the position for the image
-        p1.x = this.ladderTopCoords.x;
-        p1.y = this.ladderTopCoords.y;
-        // Update the movement position value 
-        let newPos = this.ladderTopCoords.row * 10 + this.ladderTopCoords.col; 
-        console.log(newPos);
-        p1.position = newPos;
-    }
+    let currentPlayer = getCurrentPlayer(player);
+    // Update the position for the image
+    currentPlayer.x = this.ladderTopCoords.x;
+    currentPlayer.y = this.ladderTopCoords.y;
+    // Update the movement position value 
+    let newPos = this.ladderTopCoords.row * 10 + this.ladderTopCoords.col; 
+    console.log(newPos);
+    currentPlayer.position = newPos;
 }
 
 /**
@@ -473,13 +489,23 @@ Cell.prototype.applyLadder = function(player) {
     Applies a vertical movement malus typical of a snake.
 */
 Cell.prototype.applySnake = function(player) {
-    if(player === 1) {
-        // Update the position for the image
-        p1.x = this.snakeCoords.x;
-        p1.y = this.snakeCoords.y;
-        // Update the movement position value 
-        let newPos = this.snakeCoords.row * 10 + this.snakeCoords.col; 
-        p1.position = newPos;
-        console.log(p1.position);
+    let currentPlayer = getCurrentPlayer(player);
+    // Update the position for the image
+    currentPlayer.x = this.snakeCoords.x;
+    currentPlayer.y = this.snakeCoords.y;
+    // Update the movement position value 
+    let newPos = this.snakeCoords.row * 10 + this.snakeCoords.col; 
+    currentPlayer.position = newPos;
+    console.log(currentPlayer.position);
+}
+
+function getCurrentPlayer(player) {
+    let currentPlayer;
+    if (player === 1) {
+        currentPlayer = p1;
     }
+    else {
+        currentPlayer = p2;
+    }
+    return currentPlayer;
 }
